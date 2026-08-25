@@ -41,6 +41,18 @@ with this repository. Full layout and download instructions:
 
 ---
 
+## Results
+
+Frame-level AUROC (%) on the test splits (mean ± std over seeds).
+
+| Method | UBnormal | ShanghaiTech |
+|---|---|---|
+| STG-NF (2023) | 71.8 | 85.9 |
+| SeeKer (2025) | 77.9 | 85.5 |
+| **STEP (Ours)** | **90.1 ± 0.4** | **86.2 ± 0.1** |
+
+---
+
 ## Citation
 
 If you find this work useful, please cite:
