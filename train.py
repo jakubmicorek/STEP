@@ -204,9 +204,10 @@ def main():
                 stats, str(device), confidence_weighted=args.score_confidence_weighted,
             )
 
+            person_sigmas = tuple(dict.fromkeys((0, sigma_person)))
             flat = evaluator.flatten_dataset(
                 scores["Agg_Max"], target_data[split_key]["meta"],
-                person_sigmas=(sigma_person,),
+                person_sigmas=person_sigmas,
             )
             if len(flat.get("gt", [])) == 0:
                 continue
@@ -216,19 +217,26 @@ def main():
 
             smooth_rows, raw_rows = {}, {}
             for pipe in _PROTOCOLS:
-                raw    = flat[f"{pipe}_P{sigma_person}"]
-                fin    = raw[raw != -np.inf]
-                floor  = (fin.min() - 1.0) if len(fin) else 0.0
+                raw = flat[f"{pipe}_P0"]
+                finite = raw[raw != -np.inf]
                 filled = raw.copy()
-                filled[filled == -np.inf] = floor
+                filled[filled == -np.inf] = finite.min() - 1.0 if len(finite) else 0.0
 
+                smooth_source = flat[f"{pipe}_P{sigma_person}"]
+                finite = smooth_source[smooth_source != -np.inf]
+                smooth_filled = smooth_source.copy()
+                smooth_filled[smooth_filled == -np.inf] = (
+                    finite.min() - 1.0 if len(finite) else 0.0
+                )
                 if sigma_frame > 0:
-                    smoothed = filled.copy()
-                    for cid in np.unique(clip_ids):
-                        m = clip_ids == cid
-                        smoothed[m] = gaussian_filter1d(filled[m], sigma=sigma_frame)
+                    smoothed = smooth_filled.copy()
+                    for clip_id in np.unique(clip_ids):
+                        mask = clip_ids == clip_id
+                        smoothed[mask] = gaussian_filter1d(
+                            smooth_filled[mask], sigma=sigma_frame,
+                        )
                 else:
-                    smoothed = filled
+                    smoothed = smooth_filled
 
                 metrics_smooth = evaluator.calc_metrics(gt, smoothed)
                 metrics_raw    = evaluator.calc_metrics(gt, filled)
